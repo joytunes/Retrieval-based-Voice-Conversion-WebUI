@@ -8,7 +8,7 @@ from io import BytesIO
 
 
 def wav2(i, o, format):
-    inp = av.open(i, "r")
+    inp = av.open(i, "rb")
     if format == "m4a":
         format = "mp4"
     out = av.open(o, "w", format=format)
@@ -31,7 +31,7 @@ def wav2(i, o, format):
 
 
 def audio2(i, o, format, sr):
-    inp = av.open(i, "r")
+    inp = av.open(i, "rb")
     out = av.open(o, "w", format=format)
     if format == "ogg":
         format = "libvorbis"
@@ -58,7 +58,7 @@ def load_audio(file, sr):
             "You input a wrong audio path that does not exists, please fix it!"
         )
     try:
-        with open(file, "r") as f:
+        with open(file, "rb") as f:
             with BytesIO() as out:
                 audio2(f, out, "f32le", sr)
                 return np.frombuffer(out.getvalue(), np.float32).flatten()

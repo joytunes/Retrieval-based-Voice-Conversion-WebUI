@@ -11,7 +11,7 @@ def wav2(i, o, format):
     inp = av.open(i, "rb")
     if format == "m4a":
         format = "mp4"
-    out = av.open(o, "w", format=format)
+    out = av.open(o, "wb", format=format)
     if format == "ogg":
         format = "libvorbis"
     if format == "mp4":
@@ -32,7 +32,7 @@ def wav2(i, o, format):
 
 def audio2(i, o, format, sr):
     inp = av.open(i, "rb")
-    out = av.open(o, "w", format=format)
+    out = av.open(o, "wb", format=format)
     if format == "ogg":
         format = "libvorbis"
     if format == "f32le":

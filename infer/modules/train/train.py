@@ -107,7 +107,7 @@ def main():
     logger = utils.get_logger(hps.model_dir)
     for i in range(n_gpus):
         subproc = mp.Process(
-            target=run,
+            target=run_wrapper,
             args=(i, n_gpus, hps, logger),
         )
         children.append(subproc)
@@ -115,7 +115,16 @@ def main():
 
     for i in range(n_gpus):
         children[i].join()
+        if children[i].exitcode != 0:
+            logger.error(f"Process {i} failed with exit code {children[i].exitcode}")
 
+
+def run_wrapper(rank, n_gpus, hps, logger):
+    try:
+        run(rank, n_gpus, hps, logger)
+    except:
+        logger.exception(f"Process with rank {rank} failed")
+        raise
 
 def run(rank, n_gpus, hps, logger: logging.Logger):
     global global_step
@@ -162,6 +171,7 @@ def run(rank, n_gpus, hps, logger: logging.Logger):
         persistent_workers=True,
         prefetch_factor=8,
     )
+    print(f"rank {rank}: train_dataset length: {len(train_dataset)} audios, train_loader length: {len(train_loader)} batches (batch_size={hps.train.batch_size}, n_gpus={n_gpus})")
     if hps.if_f0 == 1:
         net_g = RVC_Model_f0(
             hps.data.filter_length // 2 + 1,

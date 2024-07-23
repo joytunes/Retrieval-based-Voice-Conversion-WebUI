@@ -157,6 +157,8 @@ class Pipeline(object):
                 del self.model_rmvpe.model
                 del self.model_rmvpe
                 logger.info("Cleaning ortruntime memory")
+        else:
+            raise ValueError(f"Unknown f0_method: {f0_method}")
 
         f0 *= pow(2, f0_up_key / 12)
         # with open("test.txt","w")as f:f.write("\n".join([str(i)for i in f0.tolist()]))

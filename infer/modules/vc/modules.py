@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 import traceback
 import logging
 
@@ -17,7 +19,7 @@ from infer.lib.infer_pack.models import (
 )
 from infer.modules.vc.pipeline import Pipeline
 from infer.modules.vc.utils import *
-
+from infer.lib.train import utils
 
 class VC:
     def __init__(self, config):
@@ -33,7 +35,7 @@ class VC:
 
         self.config = config
 
-    def get_vc(self, sid, *to_return_protect):
+    def get_vc(self, sid, *to_return_protect, weights_override_path=None):
         logger.info("Get sid: " + sid)
 
         to_return_protect0 = {
@@ -97,10 +99,19 @@ class VC:
                 "",
                 "",
             )
-        person = f'{os.getenv("weight_root")}/{sid}'
-        logger.info(f"Loading: {person}")
+        
+        if sid == "pretrained_v2":
+            self.cpt = get_default_config()
+        else:
+            person = f'{os.getenv("weight_root")}/{sid}'
+            logger.info(f"Loading: {person}")
+            self.cpt = torch.load(person, map_location="cpu")
 
-        self.cpt = torch.load(person, map_location="cpu")
+        if weights_override_path is not None:
+            logger.info(f"Loading weights from {weights_override_path}")
+            state_dict = torch.load(weights_override_path, map_location="cpu")["model"]
+            self.cpt["weight"] = state_dict
+
         self.tgt_sr = self.cpt["config"][-1]
         self.cpt["config"][-3] = self.cpt["weight"]["emb_g.weight"].shape[0]  # n_spk
         self.if_f0 = self.cpt.get("f0", 1)
@@ -302,3 +313,37 @@ class VC:
             yield "\n".join(infos)
         except:
             yield traceback.format_exc()
+
+
+def get_default_config():
+    repo_root = Path(__file__).resolve().parents[3]
+    config_path = repo_root / "configs/v1/40k.json"
+    config = json.loads(config_path.read_text())
+    hps = utils.HParams(**config)
+    config_obj = {}
+    # See the `savee` function in process_ckpt.py
+    config_obj["config"] = [
+        hps.data.filter_length // 2 + 1,
+        32,
+        hps.model.inter_channels,
+        hps.model.hidden_channels,
+        hps.model.filter_channels,
+        hps.model.n_heads,
+        hps.model.n_layers,
+        hps.model.kernel_size,
+        hps.model.p_dropout,
+        hps.model.resblock,
+        hps.model.resblock_kernel_sizes,
+        hps.model.resblock_dilation_sizes,
+        hps.model.upsample_rates,
+        hps.model.upsample_initial_channel,
+        hps.model.upsample_kernel_sizes,
+        hps.model.spk_embed_dim,
+        hps.model.gin_channels,
+        hps.data.sampling_rate,
+    ]
+    # opt["info"] = "%sepoch" % epoch
+    config_obj["sr"] = hps.data.sampling_rate
+    config_obj["f0"] = 1
+    config_obj["version"] = "v2"
+    return config_obj

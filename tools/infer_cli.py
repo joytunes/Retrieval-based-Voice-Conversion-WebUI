@@ -16,14 +16,14 @@ from infer.modules.vc.modules import VC
 # In your Terminal or CMD or whatever
 
 
-def arg_parse() -> tuple:
+def arg_parse() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--f0up_key", type=int, default=0)
     parser.add_argument("--input_path", type=str, help="input path")
     parser.add_argument("--index_path", type=str, help="index path")
     parser.add_argument("--f0method", type=str, default="harvest", help="harvest or pm")
     parser.add_argument("--opt_path", type=str, help="opt path")
-    parser.add_argument("--model_name", type=str, help="store in assets/weight_root")
+    parser.add_argument("--model_name", type=str, help="store in assets/weight_root", required=True)
     parser.add_argument("--index_rate", type=float, default=0.66, help="index rate")
     parser.add_argument("--device", type=str, help="device")
     parser.add_argument("--is_half", type=bool, help="use half -> True")
@@ -31,6 +31,8 @@ def arg_parse() -> tuple:
     parser.add_argument("--resample_sr", type=int, default=0, help="resample sr")
     parser.add_argument("--rms_mix_rate", type=float, default=1, help="rms mix rate")
     parser.add_argument("--protect", type=float, default=0.33, help="protect")
+    parser.add_argument("--weights-override")
+    parser.add_argument("--sid", type=int, default=0, help="speaker id")
 
     args = parser.parse_args()
     sys.argv = sys.argv[:1]
@@ -45,9 +47,9 @@ def main():
     config.device = args.device if args.device else config.device
     config.is_half = args.is_half if args.is_half else config.is_half
     vc = VC(config)
-    vc.get_vc(args.model_name)
-    _, wav_opt = vc.vc_single(
-        0,
+    vc.get_vc(args.model_name, weights_override_path=args.weights_override)
+    _, (sr, audio) = vc.vc_single(
+        args.sid,
         args.input_path,
         args.f0up_key,
         None,
@@ -60,7 +62,8 @@ def main():
         args.rms_mix_rate,
         args.protect,
     )
-    wavfile.write(args.opt_path, wav_opt[0], wav_opt[1])
+    if audio is not None:
+        wavfile.write(args.opt_path, sr, audio)
 
 
 if __name__ == "__main__":

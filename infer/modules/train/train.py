@@ -1,6 +1,8 @@
 import os
+from pathlib import Path
 import sys
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -132,8 +134,11 @@ def run(rank, n_gpus, hps, logger: logging.Logger):
         # logger = utils.get_logger(hps.model_dir)
         logger.info(hps)
         # utils.check_git_hash(hps.model_dir)
-        writer = SummaryWriter(log_dir=hps.model_dir)
-        writer_eval = SummaryWriter(log_dir=os.path.join(hps.model_dir, "eval"))
+        timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+        run_dir = Path(hps.model_dir) / "runs" / timestamp
+        run_dir.mkdir(parents=True, exist_ok=True)
+        writer = SummaryWriter(log_dir=run_dir)
+        writer_eval = SummaryWriter(log_dir=run_dir / "eval")
 
     dist.init_process_group(
         backend="gloo", init_method="env://", world_size=n_gpus, rank=rank
